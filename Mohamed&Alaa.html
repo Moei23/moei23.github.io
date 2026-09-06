@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#04060f">
+<title>Partikelherz für Alaa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300;1,500&family=Jost:wght@300;400;500&display=swap">
+<style>
+  /* Bewusst einseitiges, dunkles Design (Nachthimmel) — Farben immer explizit. */
+  :root {
+    --ink:        #04060f;
+    --ink-2:      #080d1e;
+    --ice:        #eaf7ff;
+    --glow:       #7fe6ff;
+    --deep:       #1668ff;
+    --rose:       #ff5f8f;
+    --muted:      rgba(234, 247, 255, 0.42);
+    --line:       rgba(127, 230, 255, 0.22);
+    --accent:     var(--glow);
+  }
+  :root[data-mood="rose"] {
+    --accent: var(--rose);
+    --line: rgba(255, 95, 143, 0.24);
+    --muted: rgba(255, 235, 242, 0.46);
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--ice);
+    font-family: "Jost", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  canvas#stage {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: manipulation;
+  }
+
+  /* Vignette: zieht den Blick in die Mitte */
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 38%, rgba(2,4,10,0.55) 78%, rgba(2,4,10,0.9) 100%);
+  }
+
+  .caption {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: clamp(26px, 7vh, 74px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+    text-align: center;
+    padding: 0 20px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1.6s ease, transform 1.6s ease;
+  }
+  .caption.show { opacity: 1; transform: none; }
+
+  .names {
+    font-family: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+    font-weight: 300;
+    font-size: clamp(26px, 5.4vw, 54px);
+    line-height: 1.1;
+    letter-spacing: 0.14em;
+    text-indent: 0.14em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 3vw, 30px);
+    color: var(--ice);
+    text-shadow: 0 0 26px rgba(127, 230, 255, 0.55), 0 0 70px rgba(22, 104, 255, 0.35);
+    text-wrap: balance;
+  }
+  :root[data-mood="rose"] .names {
+    text-shadow: 0 0 26px rgba(255, 95, 143, 0.5), 0 0 70px rgba(255, 95, 143, 0.28);
+  }
+
+  .beat {
+    width: clamp(16px, 2.6vw, 26px);
+    height: clamp(16px, 2.6vw, 26px);
+    flex: none;
+    background: var(--accent);
+    filter: drop-shadow(0 0 12px var(--accent));
+    /* Herz als CSS-Form, kein Emoji — bleibt auf jedem Gerät gleich */
+    clip-path: path("M12 21s-8.5-5.6-8.5-11.2A4.8 4.8 0 0 1 12 6.4a4.8 4.8 0 0 1 8.5 3.4C20.5 15.4 12 21 12 21z");
+    -webkit-clip-path: path("M12 21s-8.5-5.6-8.5-11.2A4.8 4.8 0 0 1 12 6.4a4.8 4.8 0 0 1 8.5 3.4C20.5 15.4 12 21 12 21z");
+    background-size: 24px 24px;
+    animation: thump 1.1s ease-in-out infinite;
+    transform-origin: center;
+  }
+  @keyframes thump {
+    0%   { transform: scale(1); }
+    8%   { transform: scale(1.28); }
+    20%  { transform: scale(1.02); }
+    30%  { transform: scale(1.16); }
+    46%  { transform: scale(1); }
+    100% { transform: scale(1); }
+  }
+
+  .line {
+    font-size: clamp(10px, 1.5vw, 12px);
+    letter-spacing: 0.42em;
+    text-indent: 0.42em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .controls {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    display: flex;
+    gap: 8px;
+    z-index: 3;
+  }
+  .controls button {
+    font: inherit;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ice);
+    background: rgba(8, 13, 30, 0.55);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 9px 15px;
+    cursor: pointer;
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    transition: border-color .25s ease, background .25s ease, transform .15s ease;
+  }
+  .controls button:hover { border-color: var(--accent); background: rgba(12, 20, 42, 0.75); }
+  .controls button:active { transform: translateY(1px); }
+  .controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .controls button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+  .hint {
+    position: fixed;
+    top: 22px;
+    left: 22px;
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--muted);
+    pointer-events: none;
+    transition: opacity 1.2s ease;
+    max-width: 44vw;
+  }
+  .hint.gone { opacity: 0; }
+
+  @media (max-width: 560px) {
+    .hint { display: none; }
+    .controls { top: auto; bottom: 14px; right: 50%; transform: translateX(50%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .beat { animation-duration: 2.4s; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="Animiertes Partikelherz"></canvas>
+<div class="vignette"></div>
+
+<div class="caption">
+  <div class="names">
+    <span id="nameA">MOHAMED</span>
+    <span class="beat" aria-hidden="true"></span>
+    <span id="nameB">ALAA</span>
+  </div>
+  <div class="line" id="tagline">Every beat spells your name</div>
+</div>
+
+<nav class="controls">
+  <button id="btnMusic" aria-pressed="false">Musik</button>
+  <button id="btnMood" aria-pressed="false">Rosé</button>
+  <button id="btnShape">Form</button>
+  <button id="btnReplay">Neu</button>
+</nav>
+
+<p class="hint" id="hint">Klick ins Bild = Explosion</p>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ------------------------------------------------------------------ *
+   * 1. Konfiguration — alles an einer Stelle.
+   *    Über die URL änderbar:  ?a=Name1&b=Name2&m=Text1|Text2
+   * ------------------------------------------------------------------ */
+  const q = new URLSearchParams(location.search);
+  const CONFIG = {
+    nameA:    (q.get("a") || "MOHAMED").toUpperCase(),
+    nameB:    (q.get("b") || "ALAA").toUpperCase(),
+    messages: (q.get("m") || "I LOVE YOU|ICH LIEBE DICH").split("|"),
+    tagline:  q.get("t") || "Every beat spells your name",
+    cycleMs:  8000
+  };
+  CONFIG.openName = (q.get("o") || CONFIG.nameB).toUpperCase();
+
+  document.getElementById("nameA").textContent = CONFIG.nameA;
+  document.getElementById("nameB").textContent = CONFIG.nameB;
+  document.getElementById("tagline").textContent = CONFIG.tagline;
+  document.title = "Partikelherz für " + CONFIG.nameB.charAt(0) + CONFIG.nameB.slice(1).toLowerCase();
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ------------------------------------------------------------------ *
+   * 2. Canvas mit devicePixelRatio — sonst ist alles auf Retina matschig
+   * ------------------------------------------------------------------ */
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  let W = 0, H = 0, DPR = 1;
+
+  function fitCanvas() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 3. Farben + vorgerenderte Glow-Sprites
+   *    (statt shadowBlur pro Partikel — das ist der teuerste Canvas-Call)
+   * ------------------------------------------------------------------ */
+  const PALETTES = {
+    ice:  [[255,255,255], [159,234,255], [61,191,255], [22,125,255], [90,160,255]],
+    rose: [[255,255,255], [255,208,224], [255,120,168], [255,60,120], [200,60,190]]
+  };
+  let mood = "ice";
+  let sprites = [];
+
+  function buildSprites() {
+    sprites = PALETTES[mood].map(([r, g, b]) => {
+      const s = 64;
+      const c = document.createElement("canvas");
+      c.width = c.height = s;
+      const g2 = c.getContext("2d");
+      const grd = g2.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+      grd.addColorStop(0.00, "rgba(255,255,255,0.95)");
+      grd.addColorStop(0.22, `rgba(${r},${g},${b},0.85)`);
+      grd.addColorStop(0.55, `rgba(${r},${g},${b},0.22)`);
+      grd.addColorStop(1.00, `rgba(${r},${g},${b},0)`);
+      g2.fillStyle = grd;
+      g2.fillRect(0, 0, s, s);
+      return c;
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 4. Formen: Herz (analytisch) und Text (aus Pixeldaten gesampelt)
+   *    Alle Punkte relativ zum Bildmittelpunkt -> Formen morphen sauber.
+   * ------------------------------------------------------------------ */
+  function heartAt(t, r, s) {
+    const hx = 16 * Math.pow(Math.sin(t), 3);
+    const hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+    return { x: hx * r * s, y: -(hy + 2) * r * s };   // +2 = Kurve vertikal zentrieren
+  }
+
+  function heartPoints(count) {
+    const s = Math.min(W / 32, H / 30) * 0.62;
+    const pts = [];
+    const edge = Math.floor(count * 0.40);            // scharfe leuchtende Kontur
+    for (let i = 0; i < edge; i++) {
+      pts.push(heartAt(Math.random() * Math.PI * 2, 1, s));
+    }
+    for (let i = edge; i < count; i++) {              // sqrt = gleichmäßige Füllung
+      pts.push(heartAt(Math.random() * Math.PI * 2, Math.sqrt(Math.random()) * 0.97, s));
+    }
+    return pts;
+  }
+
+  function textPoints(text, count) {
+    const off = document.createElement("canvas");
+    const ow = Math.max(360, Math.floor(W));
+    const oh = Math.max(240, Math.floor(H));
+    off.width = ow; off.height = oh;
+    const o = off.getContext("2d");
+
+    let size = Math.floor(oh * 0.22);
+    o.textAlign = "center";
+    o.textBaseline = "middle";
+    const fit = () => {
+      o.font = `600 ${size}px "Jost", Helvetica, Arial, sans-serif`;
+      return o.measureText(text).width;
+    };
+    while (fit() > ow * 0.82 && size > 12) size -= 2;
+    o.fillStyle = "#fff";
+    o.fillText(text, ow / 2, oh / 2);
+
+    const data = o.getImageData(0, 0, ow, oh).data;
+    const step = Math.max(2, Math.round(Math.sqrt((ow * oh) / (count * 3.2))));
+    const pts = [];
+    for (let y = 0; y < oh; y += step) {
+      for (let x = 0; x < ow; x += step) {
+        if (data[(y * ow + x) * 4 + 3] > 130) {
+          pts.push({
+            x: x - ow / 2 + (Math.random() - 0.5) * step,
+            y: y - oh / 2 + (Math.random() - 0.5) * step
+          });
+        }
+      }
+    }
+    for (let i = pts.length - 1; i > 0; i--) {        // mischen, sonst „wandert" die Form zeilenweise
+      const j = (Math.random() * (i + 1)) | 0;
+      [pts[i], pts[j]] = [pts[j], pts[i]];
+    }
+    return pts.length ? pts : heartPoints(count);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 5. Partikel
+   * ------------------------------------------------------------------ */
+  class Particle {
+    constructor() {
+      this.tx = 0; this.ty = 0;
+      this.placeOutside();
+      this.vx = 0; this.vy = 0;
+      this.size  = Math.random() * 2.2 + 0.8;
+      this.ease  = Math.random() * 0.035 + 0.018;
+      this.alpha = Math.random() * 0.55 + 0.45;
+      this.sprite = sprites[(Math.random() * sprites.length) | 0];
+      this.phase = Math.random() * Math.PI * 2;
+      this.drift = Math.random() * 0.6 + 0.3;
+    }
+    // Startposition außerhalb des Bildes — die Punkte fliegen von überall herein
+    placeOutside() {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.max(W, H) * (0.62 + Math.random() * 0.5);
+      this.x = W / 2 + Math.cos(a) * r;
+      this.y = H / 2 + Math.sin(a) * r * 0.8;
+    }
+    update(now, pulse, cx, cy) {
+      if (mode === "drift") {            // Sternenstaub: freier Flug, leichter Auftrieb
+        this.vy -= 0.008;
+        this.vx *= 0.986;
+        this.vy *= 0.986;
+        this.x += this.vx;
+        this.y += this.vy;
+        return;
+      }
+      const gx = cx + this.tx * pulse;
+      const gy = cy + this.ty * pulse;
+      this.vx = (this.vx + (gx - this.x) * this.ease) * 0.86;
+      this.vy = (this.vy + (gy - this.y) * this.ease) * 0.86;
+      this.x += this.vx;
+      this.y += this.vy;
+    }
+    render(now) {
+      // Schweben passiert nur beim Zeichnen -> die Zielposition bleibt exakt
+      const ox = Math.sin(now * 0.0011 + this.phase) * this.drift * 1.6;
+      const oy = Math.cos(now * 0.0013 + this.phase) * this.drift * 1.6;
+      const tw = 0.75 + 0.25 * Math.sin(now * 0.004 + this.phase);
+      const r = this.size * 7;
+      ctx.globalAlpha = this.alpha * tw;
+      ctx.drawImage(this.sprite, this.x + ox - r, this.y + oy - r, r * 2, r * 2);
+    }
+  }
+
+  let particles = [];
+  let stars = [];
+  let floaters = [];
+  let mode = "attract";          // "attract" = Form halten, "drift" = Sternenstaub
+  let introPoints = null;
+
+  function targetCount() {
+    const base = Math.floor((W * H) / 620);
+    return Math.max(500, Math.min(reduced ? 900 : 2200, base));
+  }
+
+  function buildWorld() {
+    const n = targetCount();
+    if (particles.length !== n) {
+      particles = Array.from({ length: n }, () => new Particle());
+    } else {
+      particles.forEach(p => { p.sprite = sprites[(Math.random() * sprites.length) | 0]; });
+    }
+    stars = Array.from({ length: 110 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.1 + 0.2,
+      p: Math.random() * Math.PI * 2
+    }));
+    floaters = Array.from({ length: reduced ? 5 : 14 }, () => spawnFloater(true));
+    buildShapes();
+    introPoints = textPoints(CONFIG.openName, particles.length);
+  }
+
+  function spawnFloater(anywhere) {
+    return {
+      x: Math.random() * W,
+      y: anywhere ? Math.random() * H : H + 30,
+      s: Math.random() * 9 + 5,
+      v: Math.random() * 0.28 + 0.14,
+      a: Math.random() * 0.22 + 0.08,
+      p: Math.random() * Math.PI * 2
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 6. Sequenz: Herz -> Text -> Herz -> Text ...
+   * ------------------------------------------------------------------ */
+  let sequence = [];
+  let shapes = [];
+  let shapeIndex = 0;
+
+  function buildShapes() {
+    sequence = [{ kind: "heart" }];
+    CONFIG.messages.forEach(m => {
+      sequence.push({ kind: "text", text: m.trim() });
+      sequence.push({ kind: "heart" });
+    });
+    const n = particles.length;
+    shapes = sequence.map(s => s.kind === "heart" ? heartPoints(n) : textPoints(s.text, n));
+    if (shapeIndex >= shapes.length) shapeIndex = 0;
+  }
+
+  function assignTargets(pts) {
+    particles.forEach((p, k) => {
+      const pt = pts[k % pts.length];
+      p.tx = pt.x;
+      p.ty = pt.y;
+    });
+  }
+
+  function applyShape(i) {
+    shapeIndex = ((i % shapes.length) + shapes.length) % shapes.length;
+    assignTargets(shapes[shapeIndex]);
+  }
+
+  function nextShape() {
+    if (intro.active) return;
+    applyShape(shapeIndex + 1);
+    lastCycle = performance.now();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 6b. Öffnungs-Sequenz:
+   *     Name schreiben -> zu Sternenstaub zerfallen -> Herz formen
+   * ------------------------------------------------------------------ */
+  const intro = { active: false, stage: 0, t0: 0 };
+  const INTRO = { write: 3600, scatter: 1500 };
+
+  function startIntro() {
+    const caption = document.querySelector(".caption");
+    if (reduced) {                       // Bewegung reduziert: direkt das Herz
+      intro.active = false;
+      mode = "attract";
+      applyShape(0);
+      caption.classList.add("show");
+      return;
+    }
+    caption.classList.remove("show");
+    particles.forEach(p => {
+      p.placeOutside();
+      p.vx = 0; p.vy = 0;
+      p.ease = Math.random() * 0.03 + 0.026;   // beim Einflug etwas zügiger
+    });
+    mode = "attract";
+    assignTargets(introPoints);
+    intro.active = true;
+    intro.stage = 0;
+    intro.t0 = performance.now();
+  }
+
+  function stepIntro(now) {
+    if (!intro.active) return;
+    const e = now - intro.t0;
+
+    if (intro.stage === 0 && e > INTRO.write) {
+      intro.stage = 1;
+      mode = "drift";
+      const cx = W / 2, cy = H * 0.46;
+      for (const p of particles) {             // Name zerfällt nach außen
+        const dx = p.x - cx, dy = p.y - cy;
+        const d = Math.hypot(dx, dy) || 1;
+        p.vx = (dx / d) * (2 + Math.random() * 5) + (Math.random() - 0.5) * 2.4;
+        p.vy = (dy / d) * (2 + Math.random() * 5) + (Math.random() - 0.5) * 2.4 - 1.2;
+      }
+      Music.chime();
+    } else if (intro.stage === 1 && e > INTRO.write + INTRO.scatter) {
+      intro.stage = 2;
+      intro.active = false;
+      mode = "attract";
+      particles.forEach(p => { p.ease = Math.random() * 0.035 + 0.018; });
+      applyShape(0);
+      document.querySelector(".caption").classList.add("show");
+      lastCycle = now;
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7. Herzschlag — zwei Schläge pro Zyklus, wie ein echtes Herz
+   * ------------------------------------------------------------------ */
+  function heartbeat(tSec) {
+    const x = (tSec % 1.1) / 1.1;
+    const b = Math.exp(-90 * Math.pow(x - 0.05, 2)) + 0.62 * Math.exp(-90 * Math.pow(x - 0.26, 2));
+    return 1 + (reduced ? 0.02 : 0.05) * b;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 8. Explosion beim Klick
+   * ------------------------------------------------------------------ */
+  function burst(cx, cy) {
+    for (const p of particles) {
+      const dx = p.x - cx, dy = p.y - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      const force = Math.min(26, 2600 / (d + 60));
+      p.vx += (dx / d) * force + (Math.random() - 0.5) * 3;
+      p.vy += (dy / d) * force + (Math.random() - 0.5) * 3;
+    }
+    Music.chime();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 9. Zeichnen
+   * ------------------------------------------------------------------ */
+  let lastCycle = 0;
+  let running = true;
+
+  function frame(now) {
+    if (!running) return;
+    const tSec = now / 1000;
+    stepIntro(now);
+    const pulse = intro.active ? 1 : heartbeat(tSec);
+    const cx = W / 2, cy = H * 0.46;
+
+    // Nachleuchten statt hartem Löschen -> weiche Lichtspuren
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(4, 6, 15, 0.26)";
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.globalCompositeOperation = "lighter";
+
+    // Sternenhimmel
+    ctx.fillStyle = mood === "rose" ? "#ffd9e6" : "#cfe9ff";
+    for (const s of stars) {
+      ctx.globalAlpha = 0.10 + 0.22 * (0.5 + 0.5 * Math.sin(tSec * 1.6 + s.p));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Aufsteigende Mini-Herzen
+    ctx.fillStyle = mood === "rose" ? "#ff5f8f" : "#5fc8ff";
+    for (const f of floaters) {
+      f.y -= f.v;
+      f.x += Math.sin(tSec + f.p) * 0.25;
+      if (f.y < -40) Object.assign(f, spawnFloater(false));
+      ctx.globalAlpha = f.a;
+      drawHeartShape(f.x, f.y, f.s);
+    }
+
+    // Partikel
+    for (const p of particles) {
+      p.update(now, pulse, cx, cy);
+      p.render(now);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+
+    if (!intro.active && now - lastCycle > CONFIG.cycleMs) nextShape();
+    requestAnimationFrame(frame);
+  }
+
+  function drawHeartShape(x, y, s) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + s * 0.32);
+    ctx.bezierCurveTo(x + s * 0.6, y - s * 0.28, x + s * 0.28, y - s * 0.75, x, y - s * 0.34);
+    ctx.bezierCurveTo(x - s * 0.28, y - s * 0.75, x - s * 0.6, y - s * 0.28, x, y + s * 0.32);
+    ctx.fill();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 10. Musik — komplett im Browser erzeugt (Web Audio), keine Datei nötig
+   * ------------------------------------------------------------------ */
+  const Music = (() => {
+    let ac = null, master = null, wet = null, timer = null;
+    let on = false, step = 0, nextTime = 0;
+    const BPM = 66, BEAT = 60 / BPM;
+    const CHORDS = [
+      [53, 57, 60, 64],   // Fmaj7
+      [48, 52, 55, 59],   // Cmaj7
+      [50, 53, 57, 60],   // Dm7
+      [46, 50, 53, 57]    // Bbmaj7
+    ];
+    const MELODY = [72, 74, 77, 76, 72, 69, 72, 74];
+    const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+    function setup() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      ac = new AC();
+      master = ac.createGain();
+      master.gain.value = 0.0001;
+      master.connect(ac.destination);
+
+      const delay = ac.createDelay(1.0);
+      delay.delayTime.value = 0.38;
+      const fb = ac.createGain(); fb.gain.value = 0.32;
+      wet = ac.createGain(); wet.gain.value = 0.3;
+      delay.connect(fb); fb.connect(delay);
+      delay.connect(wet); wet.connect(master);
+      Music._delay = delay;
+      return true;
+    }
+
+    function voice(freq, t, dur, type, vol) {
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.25, dur * 0.2));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g);
+      g.connect(master);
+      g.connect(Music._delay);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+    }
+
+    function schedule() {
+      while (nextTime < ac.currentTime + 0.25) {
+        const chord = CHORDS[(step >> 2) % CHORDS.length];
+        if (step % 4 === 0) {
+          chord.forEach(n => {
+            voice(hz(n - 12), nextTime, BEAT * 4.6, "sine", 0.055);
+            voice(hz(n) * 1.003, nextTime, BEAT * 4.2, "triangle", 0.03);
+          });
+        }
+        voice(hz(chord[step % chord.length] + 12), nextTime, BEAT * 1.6, "triangle", 0.05);
+        if (step % 2 === 1) {
+          voice(hz(MELODY[step % MELODY.length]), nextTime + BEAT * 0.5, BEAT * 1.4, "sine", 0.045);
+        }
+        nextTime += BEAT;
+        step++;
+      }
+    }
+
+    return {
+      _delay: null,
+      get on() { return on; },
+      toggle() {
+        if (!ac && !setup()) return false;
+        if (ac.state === "suspended") ac.resume();
+        on = !on;
+        const now = ac.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
+        master.gain.exponentialRampToValueAtTime(on ? 0.42 : 0.0001, now + (on ? 1.6 : 0.8));
+        if (on) {
+          nextTime = ac.currentTime + 0.1;
+          timer = setInterval(schedule, 25);
+        } else {
+          clearInterval(timer);
+          timer = null;
+        }
+        return on;
+      },
+      chime() {
+        if (!on || !ac) return;
+        const t = ac.currentTime + 0.01;
+        [76, 81, 88].forEach((n, i) => voice(hz(n), t + i * 0.05, 1.1, "sine", 0.05));
+      }
+    };
+  })();
+
+  /* ------------------------------------------------------------------ *
+   * 11. Bedienung
+   * ------------------------------------------------------------------ */
+  const btnMusic = document.getElementById("btnMusic");
+  const btnMood  = document.getElementById("btnMood");
+  const btnShape = document.getElementById("btnShape");
+  const hint     = document.getElementById("hint");
+
+  btnMusic.addEventListener("click", () => {
+    const state = Music.toggle();
+    btnMusic.setAttribute("aria-pressed", String(state));
+    btnMusic.textContent = state ? "Musik an" : "Musik";
+  });
+
+  btnMood.addEventListener("click", () => {
+    mood = mood === "ice" ? "rose" : "ice";
+    document.documentElement.setAttribute("data-mood", mood);
+    btnMood.setAttribute("aria-pressed", String(mood === "rose"));
+    btnMood.textContent = mood === "rose" ? "Eis" : "Rosé";
+    buildSprites();
+    particles.forEach(p => { p.sprite = sprites[(Math.random() * sprites.length) | 0]; });
+  });
+
+  btnShape.addEventListener("click", nextShape);
+  document.getElementById("btnReplay").addEventListener("click", startIntro);
+
+  canvas.addEventListener("pointerdown", e => {
+    burst(e.clientX, e.clientY);
+    hint.classList.add("gone");
+  });
+
+  // Resize: Formen neu berechnen, aber die Partikel NICHT neu starten
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      fitCanvas();
+      buildShapes();
+      introPoints = textPoints(CONFIG.openName, particles.length);
+      if (intro.active) assignTargets(introPoints);
+      else applyShape(shapeIndex);
+      stars = Array.from({ length: 110 }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        r: Math.random() * 1.1 + 0.2, p: Math.random() * Math.PI * 2
+      }));
+    }, 180);
+  });
+
+  // Im Hintergrund nicht weiterrechnen — spart Akku
+  let hiddenAt = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      running = false;
+      hiddenAt = performance.now();
+    } else if (!running) {
+      running = true;
+      const paused = performance.now() - hiddenAt;
+      intro.t0 += paused;               // Öffnung läuft weiter, wo sie war
+      lastCycle = performance.now();
+      requestAnimationFrame(frame);
+    }
+  });
+
+  setTimeout(() => hint.classList.add("gone"), 9000);
+
+  fitCanvas();
+  buildSprites();
+  buildWorld();
+  startIntro();
+  lastCycle = performance.now();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

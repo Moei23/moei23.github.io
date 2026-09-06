@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Mohamed ❤️ Alaa</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at center, #04182a 0%, #000814 45%, #000 100%);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      display: block;
+    }
+
+    /* Startbutton */
+
+    #startButton {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      z-index: 20;
+
+      padding: 17px 32px;
+      border: 1px solid rgba(120, 225, 255, 0.9);
+      border-radius: 40px;
+
+      color: white;
+      background: rgba(0, 120, 200, 0.18);
+
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 1px;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 0 15px rgba(0, 191, 255, 0.8),
+        0 0 40px rgba(0, 110, 255, 0.5),
+        inset 0 0 15px rgba(0, 200, 255, 0.25);
+
+      backdrop-filter: blur(8px);
+
+      transform: translate(-50%, -50%);
+      transition:
+        opacity 0.6s,
+        transform 0.4s,
+        box-shadow 0.4s;
+    }
+
+    #startButton:hover {
+      transform: translate(-50%, -50%) scale(1.08);
+
+      box-shadow:
+        0 0 25px #00bfff,
+        0 0 60px rgba(0, 100, 255, 0.8);
+    }
+
+    #startButton.hide {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.6);
+    }
+
+    /* Liebestext in der Herzmitte */
+
+    #loveMessage {
+      position: fixed;
+      top: 48%;
+      left: 50%;
+      z-index: 10;
+
+      width: min(90%, 600px);
+      text-align: center;
+
+      opacity: 0;
+      pointer-events: none;
+
+      transform: translate(-50%, -50%) scale(0.6);
+
+      transition:
+        opacity 2s ease,
+        transform 2s ease;
+    }
+
+    #loveMessage.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .love-line {
+      display: block;
+      opacity: 0;
+
+      color: white;
+      font-size: clamp(25px, 5vw, 55px);
+      font-weight: bold;
+      letter-spacing: clamp(3px, 1vw, 10px);
+
+      text-shadow:
+        0 0 8px white,
+        0 0 18px #51d7ff,
+        0 0 35px #008cff,
+        0 0 60px #004cff;
+
+      transform: translateY(20px);
+    }
+
+    #loveMessage.show .line-one {
+      animation: showLine 1.2s 0.2s forwards;
+    }
+
+    #loveMessage.show .line-two {
+      margin-top: 8px;
+
+      color: #bdeeff;
+      font-size: clamp(30px, 6vw, 65px);
+
+      animation: showLine 1.2s 1.1s forwards;
+    }
+
+    #loveMessage.show .heart-symbol {
+      display: block;
+      margin-top: 4px;
+
+      opacity: 0;
+
+      color: #ff3978;
+      font-size: clamp(55px, 10vw, 100px);
+
+      text-shadow:
+        0 0 10px #fff,
+        0 0 25px #ff2d75,
+        0 0 55px #ff0055;
+
+      animation:
+        showHeart 1s 2s forwards,
+        heartbeat 1.15s 3s infinite;
+    }
+
+    #loveMessage.show .names {
+      display: block;
+      margin-top: 8px;
+
+      opacity: 0;
+
+      color: #9feaff;
+      font-size: clamp(15px, 3vw, 28px);
+      font-weight: bold;
+      letter-spacing: clamp(2px, 0.7vw, 6px);
+
+      text-shadow:
+        0 0 10px #00bfff,
+        0 0 25px #006eff;
+
+      animation: showLine 1.4s 2.8s forwards;
+    }
+
+    /* Kleiner Hinweis unten */
+
+    #clickHint {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      z-index: 10;
+
+      color: rgba(190, 235, 255, 0.75);
+      font-size: 13px;
+      letter-spacing: 1px;
+
+      opacity: 0;
+      pointer-events: none;
+
+      transform: translateX(-50%);
+      transition: opacity 1.5s;
+    }
+
+    #clickHint.show {
+      opacity: 1;
+    }
+
+    @keyframes showLine {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+        filter: blur(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes showHeart {
+      from {
+        opacity: 0;
+        transform: scale(0.2);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes heartbeat {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      15% {
+        transform: scale(1.2);
+      }
+
+      30% {
+        transform: scale(1);
+      }
+
+      45% {
+        transform: scale(1.13);
+      }
+
+      65% {
+        transform: scale(1);
+      }
+    }
+
+    @media (max-width: 600px) {
+      #loveMessage {
+        top: 47%;
+      }
+
+      #startButton {
+        padding: 15px 25px;
+        font-size: 16px;
+      }
+
+      #clickHint {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <canvas id="heartCanvas"></canvas>
+
+  <button id="startButton">
+    Für Alaa ❤️
+  </button>
+
+  <div id="loveMessage">
+    <span class="love-line line-one">I LOVE YOU</span>
+    <span class="love-line line-two">ALAA</span>
+    <span class="heart-symbol">♥</span>
+    <span class="names">MOHAMED & ALAA</span>
+  </div>
+
+  <div id="clickHint">
+    Tippe auf den Bildschirm ✨
+  </div>
+
+  <!--
+    Lege eine Datei namens musik.mp3
+    in denselben Ordner wie index.html.
+  -->
+
+  <audio id="loveMusic" loop>
+    <source src="musik.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const canvas = document.getElementById("heartCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const startButton = document.getElementById("startButton");
+    const loveMessage = document.getElementById("loveMessage");
+    const clickHint = document.getElementById("clickHint");
+    const loveMusic = document.getElementById("loveMusic");
+
+    let width;
+    let height;
+    let particles = [];
+    let burstParticles = [];
+    let stars = [];
+    let animationStarted = false;
+    let animationTime = 0;
+
+    const heartColors = [
+      "#ffffff",
+      "#c8f5ff",
+      "#82e6ff",
+      "#7",
+      "#00bfff",
+      "#087cff",
+      "#114de8"
+    ];
+
+    /*
+      Hintergrundsterne
+    */
+
+    class Star {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 1.5 + 0.2;
+        this.opacity = Math.random() * 0.6 + 0.1;
+        this.speed = Math.random() * 0.25 + 0.05;
+      }
+
+      update() {
+        this.y += this.speed;
+
+        if (this.y > height) {
+          this.y = 0;
+          this.x = Math.random() * width;
+        }
+      }
+
+      draw() {
+        ctx.save();
+
+        ctx.globalAlpha =
+          this.opacity *
+          (0.65 + Math.sin(Date.now() * 0.002 + this.x) * 0.35);
+
+        ctx.fillStyle = "#8cddff";
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    /*
+      Partikel der Herzform
+    */
+
+    class HeartParticle {
+      constructor(index, total) {
+        this.index = index;
+        this.total = total;
+        this.reset();
+      }
+
+      reset() {
+        /*
+          Ein Teil der Partikel bildet die Kontur,
+          der Rest füllt das Herz von innen.
+        */
+
+        const t =
+          (this.index / this.total) * Math.PI * 2 +
+          Math.random() * 0.08;
+
+        const heartX = 16 * Math.pow(Math.sin(t), 3);
+
+        const heartY =
+          13 * Math.cos(t) -
+          5 * Math.cos(2 * t) -
+          2 * Math.cos(3 * t) -
+          Math.cos(4 * t);
+
+        const isOutline = Math.random() < 0.4;
+
+        const fillAmount = isOutline
+          ? Math.random() * 0.08 + 0.92
+          : Math.sqrt(Math.random()) * 0.9;
+
+        const scale = Math.min(width, height) / 38;
+
+        this.targetX =
+          width / 2 + heartX * scale * fillAmount;
+
+        this.targetY =
+          height / 2 - heartY * scale * fillAmount - height * 0.04;
+
+        /*
+          Die Partikel starten unten wie eine Fontäne.
+        */
+
+        this.x =
+          width / 2 +
+          (Math.random() - 0.5) * Math.min(width * 0.2, 160);
+
+        this.y =
+          height +
+          Math.random() * height * 0.2;
+
+        this.previousX = this.x;
+        this.previousY = this.y;
+
+        this.size = Math.random() * 2.1 + 0.6;
+        this.speed = Math.random() * 0.018 + 0.009;
+        this.opacity = Math.random() * 0.7 + 0.3;
+        this.floatOffset = Math.random() * Math.PI * 2;
+
+        this.color =
+          heartColors[
+            Math.floor(Math.random() * heartColors.length)
+          ];
+      }
+
+      update() {
+        this.previousX = this.x;
+        this.previousY = this.y;
+
+        const pulse =
+          1 +
+          Math.sin(animationTime * 0.045) * 0.025;
+
+        const centerX = width / 2;
+        const centerY = height / 2 - height * 0.04;
+
+        const pulsingTargetX =
+          centerX +
+          (this.targetX - centerX) * pulse;
+
+        const pulsingTargetY =
+          centerY +
+          (this.targetY - centerY) * pulse;
+
+        this.x +=
+          (pulsingTargetX - this.x) * this.speed;
+
+        this.y +=
+          (pulsingTargetY - this.y) * this.speed;
+
+        const floating =
+          Math.sin(animationTime * 0.02 + this.floatOffset);
+
+        this.x += floating * 0.08;
+        this.y += Math.cos(
+          animationTime * 0.017 + this.floatOffset
+        ) * 0.05;
+      }
+
+      draw() {
+        ctx.save();
+
+        ctx.globalAlpha = this.opacity;
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = this.color;
+
+        /*
+          Kleiner Lichtschweif
+        */
+
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = Math.max(0.3, this.size * 0.35);
+
+        ctx.beginPath();
+        ctx.moveTo(this.previousX, this.previousY);
+        ctx.lineTo(this.x, this.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(
+          this.x,
+          this.y,
+          this.size,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    /*
+      Explosionen beim Klicken
+    */
+
+    class BurstParticle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 1.5;
+
+        this.velocityX = Math.cos(angle) * speed;
+        this.velocityY = Math.sin(angle) * speed;
+
+        this.size = Math.random() * 3 + 1;
+        this.life = 1;
+        this.decay = Math.random() * 0.018 + 0.012;
+
+        const burstColors = [
+          "#ffffff",
+          "#76e4ff",
+          "#009dff",
+          "#ff4b8b",
+          "#ff8ab3"
+        ];
+
+        this.color =
+          burstColors[
+            Math.floor(Math.random() * burstColors.length)
+          ];
+      }
+
+      update() {
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+
+        this.velocityX *= 0.985;
+        this.velocityY *= 0.985;
+        this.velocityY += 0.015;
+
+        this.life -= this.decay;
+      }
+
+      draw() {
+        ctx.save();
+
+        ctx.globalAlpha = Math.max(this.life, 0);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+
+        ctx.beginPath();
+        ctx.arc(
+          this.x,
+          this.y,
+          this.size,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    function resizeCanvas() {
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+      width = window.innerWidth;
+      height = window.innerHeight;
+
+      canvas.width = width * pixelRatio;
+      canvas.height = height * pixelRatio;
+
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+
+      ctx.setTransform(
+        pixelRatio,
+        0,
+        0,
+        pixelRatio,
+        0,
+        0
+      );
+
+      createStars();
+
+      if (animationStarted) {
+        createHeartParticles();
+      }
+    }
+
+    function createStars() {
+      stars = [];
+
+      const starCount = Math.min(
+        180,
+        Math.floor((width * height) / 7000)
+      );
+
+      for (let i = 0; i < starCount; i++) {
+        stars.push(new Star());
+      }
+    }
+
+    function createHeartParticles() {
+      particles = [];
+
+      /*
+        Auf Handys weniger Partikel verwenden,
+        damit die Animation flüssig bleibt.
+      */
+
+      const isMobile = width < 700;
+      const particleCount = isMobile ? 850 : 1500;
+
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(
+          new HeartParticle(i, particleCount)
+        );
+      }
+    }
+
+    function createBurst(x, y) {
+      const amount = width < 700 ? 55 : 90;
+
+      for (let i = 0; i < amount; i++) {
+        burstParticles.push(
+          new BurstParticle(x, y)
+        );
+      }
+    }
+
+    function drawBottomGlow() {
+      if (!animationStarted) {
+        return;
+      }
+
+      const glowY = height * 0.88;
+
+      const gradient = ctx.createRadialGradient(
+        width / 2,
+        glowY,
+        0,
+        width / 2,
+        glowY,
+        Math.min(width * 0.35, 300)
+      );
+
+      gradient.addColorStop(
+        0,
+        "rgba(0, 220, 255, 0.55)"
+      );
+
+      gradient.addColorStop(
+        0.3,
+        "rgba(0, 120, 255, 0.2)"
+      );
+
+      gradient.addColorStop(
+        1,
+        "rgba(0, 80, 255, 0)"
+      );
+
+      ctx.save();
+      ctx.fillStyle = gradient;
+
+      ctx.fillRect(
+        width / 2 - 320,
+        glowY - 180,
+        640,
+        360
+      );
+
+      ctx.restore();
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      animationTime++;
+
+      for (const star of stars) {
+        star.update();
+        star.draw();
+      }
+
+      drawBottomGlow();
+
+      for (const particle of particles) {
+        particle.update();
+        particle.draw();
+      }
+
+      for (
+        let i = burstParticles.length - 1;
+        i >= 0;
+        i--
+      ) {
+        const particle = burstParticles[i];
+
+        particle.update();
+        particle.draw();
+
+        if (particle.life <= 0) {
+          burstParticles.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    async function startLoveAnimation() {
+      if (animationStarted) {
+        return;
+      }
+
+      animationStarted = true;
+      startButton.classList.add("hide");
+
+      /*
+        Musik darf im Browser erst nach einem Klick starten.
+      */
+
+      try {
+        loveMusic.volume = 0.45;
+        await loveMusic.play();
+      } catch (error) {
+        console.log(
+          "Keine Musik gefunden oder Wiedergabe blockiert."
+        );
+      }
+
+      createHeartParticles();
+      createBurst(width / 2, height * 0.82);
+
+      setTimeout(() => {
+        loveMessage.classList.add("show");
+      }, 2800);
+
+      setTimeout(() => {
+        clickHint.classList.add("show");
+      }, 6000);
+
+      setTimeout(() => {
+        clickHint.classList.remove("show");
+      }, 10000);
+
+      setTimeout(() => {
+        startButton.remove();
+      }, 700);
+    }
+
+    function handleScreenInteraction(event) {
+      if (!animationStarted) {
+        return;
+      }
+
+      let x;
+      let y;
+
+      if (event.touches && event.touches.length > 0) {
+        x = event.touches[0].clientX;
+        y = event.touches[0].clientY;
+      } else {
+        x = event.clientX;
+        y = event.clientY;
+      }
+
+      createBurst(x, y);
+    }
+
+    startButton.addEventListener(
+      "click",
+      startLoveAnimation
+    );
+
+    canvas.addEventListener(
+      "click",
+      handleScreenInteraction
+    );
+
+    canvas.addEventListener(
+      "touchstart",
+      handleScreenInteraction,
+      { passive: true }
+    );
+
+    window.addEventListener(
+      "resize",
+      resizeCanvas
+    );
+
+    resizeCanvas();
+    animate();
+  </script>
+
+</body>
+</html>
